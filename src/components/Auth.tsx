@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import styles from ".Auth.module.css";
 import { useDispatch } from "react-redux";
 import { auth, provider, storage } from "../firebase";
+import { signInWithPopup } from "firebase/auth";
 import {
   Avatar,
   Button,
@@ -56,6 +57,9 @@ const Auth: React.FC = () => {
       password: data.get("password"),
     });
   };
+  const signInWithGoogle = async () => {
+    await signInWithPopup(auth, provider).catch((err) => alert(err.message));
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -68,7 +72,8 @@ const Auth: React.FC = () => {
           md={7}
           sx={{
             // 左側ペインの画像
-            backgroundImage: "url(https://images.unsplash.com/photo-1621416953228-87ad15716483?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80)",
+            backgroundImage:
+              "url(https://images.unsplash.com/photo-1621416953228-87ad15716483?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80)",
             backgroundRepeat: "no-repeat",
             backgroundColor: (t) =>
               t.palette.mode === "light"
@@ -131,6 +136,15 @@ const Auth: React.FC = () => {
                 sx={{ mt: 3, mb: 2 }}
               >
                 Sign In
+              </Button>
+              {/*  Googleでログイン */}
+              <Button
+                fullWidth
+                variant="contained"
+                sx={{ mt: 3, mb: 2 }}
+                onClick={signInWithGoogle}
+              >
+                SignIn with Google
               </Button>
               <Grid container>
                 <Grid item xs>

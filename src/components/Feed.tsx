@@ -1,7 +1,7 @@
 import React from "react";
 
 function Feed() {
-  return <div></div>;
+  return <div>Success!</div>;
 }
 
 export default Feed;
