@@ -1,8 +1,12 @@
 import React, { useState } from "react";
-import styles from ".Auth.module.css";
+import styles from "./Auth.module.css";
 import { useDispatch } from "react-redux";
 import { auth, provider, storage } from "../firebase";
-import { signInWithPopup } from "firebase/auth";
+import {
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+} from "firebase/auth";
 import {
   Avatar,
   Button,
@@ -27,6 +31,7 @@ import CameraIcon from "@mui/icons-material/Camera";
 import EmailIcon from "@mui/icons-material/Email";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import { classes } from "istanbul-lib-coverage";
 
 function Copyright(props: any) {
   return (
@@ -49,14 +54,20 @@ function Copyright(props: any) {
 const theme = createTheme();
 
 const Auth: React.FC = () => {
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    console.log({
-      email: data.get("email"),
-      password: data.get("password"),
-    });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  // ログイン状態か否かを保持 初期値はログインモードtrue
+  const [isLogin, setIsLogin] = useState(true);
+
+  const signInWithEmail = async () => {
+    // ステートで管理しているemailとpasswordが入る
+    await signInWithEmailAndPassword(auth, email, password);
   };
+
+  const signUpWithEmail = async () => {
+    await createUserWithEmailAndPassword(auth, email, password);
+  };
+
   const signInWithGoogle = async () => {
     await signInWithPopup(auth, provider).catch((err) => alert(err.message));
   };
@@ -97,12 +108,12 @@ const Auth: React.FC = () => {
               <LockOutlinedIcon />
             </Avatar>
             <Typography component="h1" variant="h5">
-              Sign in
+              {/* isLoginの値で表示を変更*/}
+              {isLogin ? "Login" : "Register"}
             </Typography>
             <Box
               component="form"
               noValidate
-              onSubmit={handleSubmit}
               sx={{ mt: 1 }}
             >
               <TextField
@@ -114,6 +125,12 @@ const Auth: React.FC = () => {
                 name="email"
                 autoComplete="email"
                 autoFocus
+                // emailステートをvalueに割り当て
+                value={email}
+                // 文字が入力されたらsetEmailを呼び出し、ステートに反映
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setEmail(e.target.value);
+                }}
               />
               <TextField
                 margin="normal"
@@ -124,19 +141,60 @@ const Auth: React.FC = () => {
                 type="password"
                 id="password"
                 autoComplete="current-password"
+                // passwordステートをvalueに割り当て
+                value={password}
+                // 文字が入力されたらsetPasswordを呼び出し、ステートに反映
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setPassword(e.target.value);
+                }}
               />
               <FormControlLabel
                 control={<Checkbox value="remember" color="primary" />}
                 label="Remember me"
               />
               <Button
-                type="submit"
                 fullWidth
                 variant="contained"
                 sx={{ mt: 3, mb: 2 }}
+                startIcon={<EmailIcon />}
+                onClick={
+                  isLogin
+                    ? async () => {
+                        // ログインモード
+                        try {
+                          await signInWithEmail();
+                        } catch (err: any) {
+                          alert(err.message);
+                        }
+                      }
+                    : async () => {
+                        // サインインモード
+                        try {
+                          await signUpWithEmail();
+                        } catch (err: any) {
+                          alert(err.massage);
+                        }
+                      }
+                }
               >
-                Sign In
+                {/* isLoginでボタンの文言を変更*/}
+                {isLogin ? "Login" : "Register"}
               </Button>
+              <Grid container>
+                <Grid item xs>
+                  <span className={styles.login_reset}>Forgot password?</span>
+                </Grid>
+                <Grid item xs>
+                  {/*クリックされると、ログインモードとサインインモードを切り替える*/}
+                  <span
+                    className={styles.login_toggleMode}
+                    onClick={() => setIsLogin(!isLogin)}
+                  >
+                    {isLogin ? "Create new account ?" : "Back to login"}
+                  </span>
+                </Grid>
+              </Grid>
+
               {/*  Googleでログイン */}
               <Button
                 fullWidth
@@ -146,18 +204,6 @@ const Auth: React.FC = () => {
               >
                 SignIn with Google
               </Button>
-              <Grid container>
-                <Grid item xs>
-                  <Link href="#" variant="body2">
-                    Forgot password?
-                  </Link>
-                </Grid>
-                <Grid item>
-                  <Link href="#" variant="body2">
-                    {"Don't have an account? Sign Up"}
-                  </Link>
-                </Grid>
-              </Grid>
               <Copyright sx={{ mt: 5 }} />
             </Box>
           </Box>
