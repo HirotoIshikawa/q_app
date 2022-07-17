@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import styles from "./Auth.module.css";
 import { useDispatch } from "react-redux";
 import { auth, provider, storage } from "../firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
   signInWithPopup,
   signInWithEmailAndPassword,
@@ -58,6 +59,19 @@ const Auth: React.FC = () => {
   const [password, setPassword] = useState("");
   // ログイン状態か否かを保持 初期値はログインモードtrue
   const [isLogin, setIsLogin] = useState(true);
+  const [username, setUsername] = useState("");
+  const [avatarImage, setAvatarImage] = useState<File | null>(null);
+
+  // アバター画像の設定処理
+  const onChangeImageHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // 一つのファイルを選択し
+    if (e.target.files![0]) {
+      // ステートに保存
+      setAvatarImage(e.target.files![0]);
+      // 複数ファイル選択時に、毎回呼ばれるのを防ぐため
+      e.target.value = "";
+    }
+  };
 
   const signInWithEmail = async () => {
     // ステートで管理しているemailとpasswordが入る
@@ -65,7 +79,30 @@ const Auth: React.FC = () => {
   };
 
   const signUpWithEmail = async () => {
-    await createUserWithEmailAndPassword(auth, email, password);
+    const authUser = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+    let url: Promise<string>;
+    // アバター画像がある時
+    if (avatarImage) {
+      const S =
+        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      const N = 16;
+      const randomChar = Array.from(crypto.getRandomValues(new Uint32Array(N)))
+        .map((n) => S[n % S.length])
+        .join("");
+      const fileName = randomChar + "_" + avatarImage.name;
+
+      // fireStorageに保存
+      const storageRef = ref(storage, `avaters/${fileName}`);
+      // アップロード
+      await uploadBytes(storageRef, avatarImage).then(() => {
+        // アップロードした画像のURLを取得
+        url = getDownloadURL(ref(storage, `avaters/${fileName}`))!;
+      });
+    }
   };
 
   const signInWithGoogle = async () => {
@@ -111,11 +148,7 @@ const Auth: React.FC = () => {
               {/* isLoginの値で表示を変更*/}
               {isLogin ? "Login" : "Register"}
             </Typography>
-            <Box
-              component="form"
-              noValidate
-              sx={{ mt: 1 }}
-            >
+            <Box component="form" noValidate sx={{ mt: 1 }}>
               <TextField
                 margin="normal"
                 required
@@ -184,7 +217,7 @@ const Auth: React.FC = () => {
                 <Grid item xs>
                   <span className={styles.login_reset}>Forgot password?</span>
                 </Grid>
-                <Grid item xs>
+                <Grid item>
                   {/*クリックされると、ログインモードとサインインモードを切り替える*/}
                   <span
                     className={styles.login_toggleMode}
