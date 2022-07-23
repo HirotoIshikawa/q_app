@@ -1,12 +1,17 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "../app/store";
 
+interface USER {
+  displayName: string;
+  photoUrl: string;
+}
+
 export const userSlice = createSlice({
   name: "user",
   initialState: {
     user: {
       uid: "",
-      photoURL: "",
+      photoUrl: "",
       displayName: "",
     },
   },
@@ -18,12 +23,17 @@ export const userSlice = createSlice({
     },
     // ロウグアウト時はuserステートを初期化
     logout: (state) => {
-      state.user = { uid: "", photoURL: "", displayName: "" };
+      state.user = { uid: "", photoUrl: "", displayName: "" };
+    },
+    // プロフのアプデ用
+    updateUserProfile: (state, action: PayloadAction<USER>) => {
+      state.user.displayName = action.payload.displayName;
+      state.user.photoUrl = action.payload.photoUrl;
     },
   },
 });
 
-export const { login, logout } = userSlice.actions;
+export const { login, logout, updateUserProfile } = userSlice.actions;
 
 // REACTのコンポーネントからuseSelecterでREDUXのステートを参照するために使用する関数
 export const selectUser = (state: RootState) => state.user.user;

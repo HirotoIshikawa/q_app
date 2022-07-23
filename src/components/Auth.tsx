@@ -1,12 +1,14 @@
 import React, { useState } from "react";
 import styles from "./Auth.module.css";
 import { useDispatch } from "react-redux";
+import { updateUserProfile } from "../features/userSlice";
 import { auth, provider, storage } from "../firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  updateProfile,
 } from "firebase/auth";
 import {
   Avatar,
@@ -33,6 +35,18 @@ import EmailIcon from "@mui/icons-material/Email";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import { classes } from "istanbul-lib-coverage";
+import { style } from "@mui/system";
+
+function getModalStyle() {
+  const top = 50;
+  const left = 50;
+
+  return {
+    top: `${top}%`,
+    left: `${left}%`,
+    transform: `translate(-${top}%, -${left}%)`,
+  };
+}
 
 function Copyright(props: any) {
   return (
@@ -55,12 +69,15 @@ function Copyright(props: any) {
 const theme = createTheme();
 
 const Auth: React.FC = () => {
+  const dispatch = useDispatch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   // ログイン状態か否かを保持 初期値はログインモードtrue
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState("");
   const [avatarImage, setAvatarImage] = useState<File | null>(null);
+  const [openModal, setOpenModal] = React.useState(false);
+  const [resetEmail, setResetEmail] = useState("");
 
   // アバター画像の設定処理
   const onChangeImageHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,12 +101,14 @@ const Auth: React.FC = () => {
       email,
       password
     );
-    let url: Promise<string>;
-    // アバター画像がある時
+    let url = "";
+
+    //アバター画像がある時
     if (avatarImage) {
       const S =
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
       const N = 16;
+      // 16桁のランダム文字列を生成
       const randomChar = Array.from(crypto.getRandomValues(new Uint32Array(N)))
         .map((n) => S[n % S.length])
         .join("");
@@ -98,11 +117,26 @@ const Auth: React.FC = () => {
       // fireStorageに保存
       const storageRef = ref(storage, `avaters/${fileName}`);
       // アップロード
-      await uploadBytes(storageRef, avatarImage).then(() => {
-        // アップロードした画像のURLを取得
-        url = getDownloadURL(ref(storage, `avaters/${fileName}`))!;
+      await uploadBytes(storageRef, avatarImage);
+      // アップロードした画像のURLを取得
+      url = await getDownloadURL(ref(storage, `avaters/${fileName}`));
+    }
+    //authUser.userが存在する場合
+    if (authUser.user) {
+      // fireBaseで持っている情報を更新
+      await updateProfile(authUser.user, {
+        displayName: username,
+        photoURL: url,
       });
     }
+
+    dispatch(
+      // reduxのuserステートにfirebaseに登録した情報と同じものを渡す
+      updateUserProfile({
+        displayName: username,
+        photoUrl: url,
+      })
+    );
   };
 
   const signInWithGoogle = async () => {
@@ -149,6 +183,47 @@ const Auth: React.FC = () => {
               {isLogin ? "Login" : "Register"}
             </Typography>
             <Box component="form" noValidate sx={{ mt: 1 }}>
+              {/* registerモードの場合username入力エリアを表示*/}
+              {!isLogin && (
+                <>
+                  <TextField
+                    margin="normal"
+                    required
+                    fullWidth
+                    id="username"
+                    label="Username"
+                    name="username"
+                    autoComplete="username"
+                    autoFocus
+                    // emailステートをvalueに割り当て
+                    value={username}
+                    // 文字が入力されたらsetUsernameを呼び出し、ステートに反映
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      setUsername(e.target.value);
+                    }}
+                  />
+                  <Box textAlign="center">
+                    <IconButton>
+                      <label>
+                        <AccountCircleIcon
+                          fontSize="large"
+                          className={
+                            avatarImage
+                              ? styles.login_addIconLoaded
+                              : styles.login_addIcon
+                          }
+                        />
+                        <input
+                          className={styles.login_hiddenIcon}
+                          type="file"
+                          onChange={onChangeImageHandler}
+                        />
+                      </label>
+                    </IconButton>
+                  </Box>
+                </>
+              )}
+
               <TextField
                 margin="normal"
                 required
@@ -186,6 +261,11 @@ const Auth: React.FC = () => {
                 label="Remember me"
               />
               <Button
+                disabled={
+                  isLogin
+                    ? !email || password.length < 6
+                    : !username || !email || password.length < 0 || !avatarImage
+                }
                 fullWidth
                 variant="contained"
                 sx={{ mt: 3, mb: 2 }}
