@@ -9,6 +9,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import {
   Avatar,
@@ -27,6 +28,7 @@ import {
   Checkbox,
   createTheme,
   ThemeProvider,
+  styled,
 } from "@mui/material";
 
 import SendIcon from "@mui/icons-material/Send";
@@ -36,6 +38,7 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import { classes } from "istanbul-lib-coverage";
 import { style } from "@mui/system";
+import { ThermostatAuto } from "@mui/icons-material";
 
 function getModalStyle() {
   const top = 50;
@@ -141,6 +144,18 @@ const Auth: React.FC = () => {
 
   const signInWithGoogle = async () => {
     await signInWithPopup(auth, provider).catch((err) => alert(err.message));
+  };
+
+  const sendResetEmail = async (e: React.MouseEvent<HTMLElement>) => {
+    await sendPasswordResetEmail(auth, resetEmail)
+      .then(() => {
+        setOpenModal(false);
+        setResetEmail("");
+      })
+      .catch((error) => {
+        alert(error.message);
+        setResetEmail("");
+      });
   };
 
   return (
@@ -295,7 +310,12 @@ const Auth: React.FC = () => {
               </Button>
               <Grid container>
                 <Grid item xs>
-                  <span className={styles.login_reset}>Forgot password?</span>
+                  <span
+                    className={styles.login_reset}
+                    onClick={() => setOpenModal(true)}
+                  >
+                    Forgot password?
+                  </span>
                 </Grid>
                 <Grid item>
                   {/*クリックされると、ログインモードとサインインモードを切り替える*/}
@@ -313,12 +333,46 @@ const Auth: React.FC = () => {
                 fullWidth
                 variant="contained"
                 sx={{ mt: 3, mb: 2 }}
+                startIcon={<CameraIcon />}
                 onClick={signInWithGoogle}
               >
                 SignIn with Google
               </Button>
               <Copyright sx={{ mt: 5 }} />
             </Box>
+
+            <Modal open={openModal} onClose={() => setOpenModal(false)}>
+              <Box
+                style={getModalStyle()}
+                sx={{
+                  outline: "none",
+                  position: "absolute",
+                  width: 400,
+                  borderRadius: 5,
+                  backgroundColor: "white",
+                  boxShadow: theme.shadows[5],
+                  padding: theme.spacing(10),
+                }}
+              >
+                <Box className={styles.login_modal}>
+                  <TextField
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    type="email"
+                    name="email"
+                    label="Reset E-mail"
+                    value={resetEmail}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      setResetEmail(e.target.value);
+                    }}
+                  />
+                  <IconButton onClick={sendResetEmail}>
+                    <SendIcon />
+                  </IconButton>
+                </Box>
+              </Box>
+            </Modal>
           </Box>
         </Grid>
       </Grid>

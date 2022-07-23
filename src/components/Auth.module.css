@@ -20,3 +20,12 @@
     cursor: pointer;
     color: whitesmoke;
   }
+  .modal {
+    outline: none;
+    position: absolute;
+    width: 400;
+    borderRadius: 10;
+    backgroundColor: white;
+    boxShadow: theme.shadows[5];
+    padding: theme.spacing(10);
+  }
